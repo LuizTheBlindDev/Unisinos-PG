@@ -32,6 +32,97 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 int setupShader();
 int setupGeometry();
 
+class triangulo {
+public:
+	GLfloat vertice1[6];
+	GLfloat vertice2[6];
+	GLfloat vertice3[6];
+	GLfloat vertices[18];
+	GLfloat position[3];
+	GLfloat color[3];
+	GLfloat size;
+
+	triangulo(GLfloat position[3], GLfloat size, GLfloat color[3]) {
+		this->position[0] = position[0];
+		this->position[1] = position[1];
+		this->position[2] = position[2];
+
+		this->size = size;
+
+		this->color[0] = color[0];
+		this->color[1] = color[1];
+		this->color[2] = color[2];
+	};
+
+			void verticeUpdate() {
+
+				vertice1[0] = position[0] + -size / 2;
+				vertice1[1] = position[1] + -size / 2;
+				vertice1[2] = position[2];
+				vertice1[3] = color[0];
+				vertice1[4] = color[1];
+				vertice1[5] = color[2];
+
+				vertice2[0] = position[0] + -size / 2;
+				vertice2[1] = position[1] + size / 2;
+				vertice2[2] = position[2];
+				vertice2[3] = color[0];
+				vertice2[4] = color[1];
+				vertice2[5] = color[2];
+
+				vertice3[0] = position[0] + size / 2;
+				vertice3[1] = position[1] + -size / 2;
+				vertice3[2] = position[2];
+				vertice3[3] = color[0];
+				vertice3[4] = color[1];
+				vertice3[5] = color[2];
+
+				vertices[0] = vertice1[1];
+				vertices[1] = vertice1[2];
+				vertices[2] = vertice1[3];
+				vertices[3] = vertice1[4];
+				vertices[4] = vertice1[5];
+				vertices[5] = vertice1[6];
+
+				vertices[6] = vertice2[0];
+				vertices[7] = vertice2[1];
+				vertices[8] = vertice2[2];
+				vertices[9] = vertice2[3];
+				vertices[10] = vertice2[4];
+				vertices[11] = vertice2[5];
+
+				vertices[12] = vertice3[0];
+				vertices[13] = vertice3[1];
+				vertices[14] = vertice3[2];
+				vertices[15] = vertice3[3];
+				vertices[16] = vertice3[4];
+				vertices[17] = vertice3[5];
+			};
+
+	void updateTriangulo() {
+		GLfloat vertices1[] = {
+		-0.5, -0.5, -0.5, 1.0, 0.0, 0.0,
+			-0.5, -0.5, 0.5, 1.0, 0.0, 0.0,
+			0.5, -0.5, -0.5, 1.0, 0.0, 0.0,
+		};
+
+
+		for (int i = 0; i < 18; i++) {
+			vertices[i] = vertices1[i];
+		};
+	};
+
+	void setPosition(GLfloat x, GLfloat y, GLfloat z) {
+		position[0] = x;
+		position[1] = y;
+		position[2] = z;
+
+		updateTriangulo();
+	};
+
+
+};
+
 // Dimensões da janela (pode ser alterado em tempo de execução)
 const GLuint WIDTH = 1000, HEIGHT = 1000;
 
@@ -57,7 +148,7 @@ const GLchar* fragmentShaderSource = "#version 450\n"
 "color = finalColor;\n"
 "}\n\0";
 
-bool rotateX=false, rotateY=false, rotateZ=false;
+bool rotateX=false, rotateY=false, rotateZ=false, pressW=false, pressA = false, pressS = false, pressD = false, pressQ = false, pressE = false;
 
 // Função MAIN
 int main()
@@ -108,6 +199,7 @@ int main()
 	GLuint shaderID = setupShader();
 
 	// Gerando um buffer simples, com a geometria de um triângulo
+
 	GLuint VAO = setupGeometry();
 
 
@@ -116,7 +208,7 @@ int main()
 	glm::mat4 model = glm::mat4(1); //matriz identidade;
 	GLint modelLoc = glGetUniformLocation(shaderID, "model");
 	//
-	model = glm::rotate(model, /*(GLfloat)glfwGetTime()*/glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+	//model = glm::rotate(model, /*(GLfloat)glfwGetTime()*/glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
 	glUniformMatrix4fv(modelLoc, 1, FALSE, glm::value_ptr(model));
 
 	glEnable(GL_DEPTH_TEST);
@@ -136,6 +228,7 @@ int main()
 		glPointSize(20);
 
 		float angle = (GLfloat)glfwGetTime();
+		float scaleAmount = static_cast<float>(glfwGetTime());
 
 		model = glm::mat4(1); 
 		if (rotateX)
@@ -153,19 +246,55 @@ int main()
 			model = glm::rotate(model, angle, glm::vec3(0.0f, 0.0f, 1.0f));
 
 		}
+		
+		if(pressW) {
+			model = glm::translate(model, glm::vec3(0.0f, scaleAmount, 0.0f));
+		} 
+
+		else if (pressS) {
+			model = glm::translate(model, glm::vec3(0.0f, -scaleAmount, 0.0f));
+		}
+
+		else if (pressA) {
+			model = glm::translate(model, glm::vec3(-scaleAmount, 0.0f, 0.0f));
+		}
+
+		else if (pressD) {
+			model = glm::translate(model, glm::vec3(scaleAmount, 0.0f, 0.0f));
+		}
+
+		else if (pressQ) {
+			model = glm::scale(model, glm::vec3(scaleAmount, scaleAmount, scaleAmount));
+		}
+
+		else if (pressE) {
+			model = glm::scale(model, glm::vec3(1 / scaleAmount, 1 / scaleAmount, 1 / scaleAmount));
+		}
+		
 
 		glUniformMatrix4fv(modelLoc, 1, FALSE, glm::value_ptr(model));
 		// Chamada de desenho - drawcall
 		// Poligono Preenchido - GL_TRIANGLES
 		
 		glBindVertexArray(VAO);
-		glDrawArrays(GL_TRIANGLES, 0, 18);
+		glDrawArrays(GL_TRIANGLES, 0, 36);
 
 		// Chamada de desenho - drawcall
 		// CONTORNO - GL_LINE_LOOP
 		
-		glDrawArrays(GL_POINTS, 0, 18);
+		model = glm::mat4(1);
+		model = glm::scale(model, glm::vec3(0.3f, 0.3f, 0.3f));
+		model = glm::translate(model, glm::vec3(-2.5f, 0.0f, 0.0f));
+		glUniformMatrix4fv(modelLoc, 1, FALSE, glm::value_ptr(model));
+		glDrawArrays(GL_TRIANGLES, 0, 36);
+
+		glDrawArrays(GL_POINTS, 0, 36);
 		glBindVertexArray(0);
+
+
+
+
+
 
 		// Troca os buffers da tela
 		glfwSwapBuffers(window);
@@ -187,7 +316,10 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 
 	if (key == GLFW_KEY_X && action == GLFW_PRESS)
 	{
-		rotateX = true;
+		if (rotateX == true) {
+			rotateX = false;
+			glfwSetTime(0);
+		} else rotateX = true;
 		rotateY = false;
 		rotateZ = false;
 	}
@@ -195,7 +327,11 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 	if (key == GLFW_KEY_Y && action == GLFW_PRESS)
 	{
 		rotateX = false;
-		rotateY = true;
+		if (rotateY == true) {
+			rotateY = false;
+			glfwSetTime(0);
+		}
+		else rotateY = true;
 		rotateZ = false;
 	}
 
@@ -203,10 +339,96 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 	{
 		rotateX = false;
 		rotateY = false;
-		rotateZ = true;
+		if (rotateZ == true) {
+			rotateZ = false;
+			glfwSetTime(0);
+		}
+		else rotateZ = true;
+	}
+	if (key == GLFW_KEY_W && action == GLFW_PRESS) {
+		if (rotateX == true || rotateY == true || rotateZ == true) {
+			rotateX = false;
+			rotateY = false;
+			rotateZ = false;
+		}
+
+		pressW = true;
+	}
+	if (key == GLFW_KEY_W && action == GLFW_RELEASE) {
+		pressW = false; 
+		glfwSetTime(0);
 	}
 
+	if (key == GLFW_KEY_S && action == GLFW_PRESS) {
+		if (rotateX == true || rotateY == true || rotateZ == true) {
+			rotateX = false;
+			rotateY = false;
+			rotateZ = false;
+		}
 
+		pressS = true;
+	}
+	if (key == GLFW_KEY_S && action == GLFW_RELEASE) {
+		pressS = false;
+		glfwSetTime(0);
+	}
+
+	if (key == GLFW_KEY_A && action == GLFW_PRESS) {
+		if (rotateX == true || rotateY == true || rotateZ == true) {
+			rotateX = false;
+			rotateY = false;
+			rotateZ = false;
+		}
+
+		pressA = true;
+	}
+	if (key == GLFW_KEY_A && action == GLFW_RELEASE) {
+		pressA = false;
+		glfwSetTime(0);
+	}
+
+	if (key == GLFW_KEY_D && action == GLFW_PRESS) {
+		if (rotateX == true || rotateY == true || rotateZ == true) {
+			rotateX = false;
+			rotateY = false;
+			rotateZ = false;
+		}
+
+		pressD = true;
+	}
+	if (key == GLFW_KEY_D && action == GLFW_RELEASE) {
+		pressD = false;
+		glfwSetTime(0);
+	}
+
+	if (key == GLFW_KEY_Q && action == GLFW_PRESS) {
+		if (rotateX == true || rotateY == true || rotateZ == true) {
+			rotateX = false;
+			rotateY = false;
+			rotateZ = false;
+		}
+		glfwSetTime(1);
+		pressQ = true;
+	}
+
+	if (key == GLFW_KEY_Q && action == GLFW_RELEASE) {
+		pressQ = false;
+		glfwSetTime(1);
+	}
+
+	if (key == GLFW_KEY_E && action == GLFW_PRESS) {
+		if (rotateX == true || rotateY == true || rotateZ == true) {
+			rotateX = false;
+			rotateY = false;
+			rotateZ = false;
+		}
+		glfwSetTime(1);
+		pressE = true;
+	}
+	if (key == GLFW_KEY_E && action == GLFW_RELEASE) {
+		pressE = false;
+		glfwSetTime(1);
+	}
 
 }
 
@@ -269,35 +491,61 @@ int setupGeometry()
 	// sequencial, já visando mandar para o VBO (Vertex Buffer Objects)
 	// Cada atributo do vértice (coordenada, cores, coordenadas de textura, normal, etc)
 	// Pode ser arazenado em um VBO único ou em VBOs separados
+
+
 	GLfloat vertices[] = {
 
 		//Base da pirâmide: 2 triângulos
 		//x    y    z    r    g    b
-		-0.5, -0.5, -0.5, 1.0, 1.0, 0.0,
-		-0.5, -0.5,  0.5, 0.0, 1.0, 1.0,
-		 0.5, -0.5, -0.5, 1.0, 0.0, 1.0,
+		-0.5 , -0.5 , -0.5, 1.0, 0.0, 0.0,
+		-0.5 , -0.5 ,  0.5, 1.0, 0.0, 0.0,
+		 0.5 , -0.5 , -0.5, 1.0, 0.0, 0.0,
 
-		 -0.5, -0.5, 0.5, 1.0, 1.0, 0.0,
-		  0.5, -0.5,  0.5, 0.0, 1.0, 1.0,
-		  0.5, -0.5, -0.5, 1.0, 0.0, 1.0,
+		 -0.5 , -0.5 , 0.5, 1.0, 0.0, 0.0,
+		  0.5 , -0.5 ,  0.5, 1.0, 0.0, 0.0,
+		  0.5 , -0.5 , -0.5, 1.0, 0.0, 0.0,
 
 		 //
-		 -0.5, -0.5, -0.5, 1.0, 1.0, 0.0,
-		  0.0,  0.5,  0.0, 1.0, 1.0, 0.0,
-		  0.5, -0.5, -0.5, 1.0, 1.0, 0.0,
+		 -0.5 , -0.5 , -0.5, 0.0, 1.0, 0.0,
+		 -0.5 , 0.5 ,  -0.5, 0.0, 1.0, 0.0,
+		  0.5 , -0.5 , -0.5, 0.0, 1.0, 0.0,
 
-		  -0.5, -0.5, -0.5, 1.0, 0.0, 1.0,
-		  0.0,  0.5,  0.0, 1.0, 0.0, 1.0,
-		  -0.5, -0.5, 0.5, 1.0, 0.0, 1.0,
+		 -0.5 ,  0.5 , -0.5, 0.0, 1.0, 0.0,
+		  0.5 ,  0.5 ,  -0.5, 0.0, 1.0, 0.0,
+		  0.5 , -0.5 , -0.5, 0.0, 1.0, 0.0,
 
-		   -0.5, -0.5, 0.5, 1.0, 1.0, 0.0,
-		  0.0,  0.5,  0.0, 1.0, 1.0, 0.0,
-		  0.5, -0.5, 0.5, 1.0, 1.0, 0.0,
+		  -0.5 , -0.5 , -0.5, 1.0, 1.0, 0.0,
+		  -0.5 ,  0.5 ,  -0.5, 1.0, 1.0, 0.0,
+		  -0.5 , -0.5 , 0.5, 1.0, 1.0, 0.0,
 
-		   0.5, -0.5, 0.5, 0.0, 1.0, 1.0,
-		  0.0,  0.5,  0.0, 0.0, 1.0, 1.0,
-		  0.5, -0.5, -0.5, 0.0, 1.0, 1.0,
+		  -0.5 , 0.5 , -0.5, 1.0, 1.0, 0.0,
+		  -0.5 ,  0.5 ,  0.5, 1.0, 1.0, 0.0,
+		  -0.5 , -0.5 , 0.5, 1.0, 1.0, 0.0,
 
+		 -0.5 , -0.5 , 0.5, 0.0, 0.0, 1.0,
+		  -0.5 ,  0.5 ,  0.5, 0.0, 0.0, 1.0,
+		  0.5 , -0.5 , 0.5, 0.0, 0.0, 1.0,
+
+		 -0.5 , 0.5 , 0.5, 0.0, 0.0, 1.0,
+		  0.5 ,  0.5 ,  0.5, 0.0, 0.0, 1.0,
+		  0.5 , -0.5 , 0.5, 0.0, 0.0, 1.0,
+
+
+		  0.5 , -0.5 , -0.5, 1.0, 0.0, 1.0,
+		  0.5 ,  0.5 ,  -0.5, 1.0, 0.0, 1.0,
+		  0.5 , -0.5 , 0.5, 1.0, 0.0, 1.0,
+
+		  0.5 , 0.5 , -0.5, 1.0, 0.0, 1.0,
+		  0.5 ,  0.5 ,  0.5, 1.0, 0.0, 1.0,
+		  0.5 , -0.5 , 0.5, 1.0, 0.0, 1.0,
+
+		-0.5 , 0.5 , -0.5, 1.0, 0.0, 0.5,
+		-0.5 , 0.5 ,  0.5, 1.0, 0.0, 0.5,
+		 0.5 , 0.5 , -0.5, 1.0, 0.0, 0.5,
+
+		 -0.5 , 0.5 , 0.5, 1.0, 0.0, 0.5,
+		  0.5 , 0.5 ,  0.5, 1.0, 0.0, 0.5,
+		  0.5 , 0.5 , -0.5, 1.0, 0.0, 0.5,
 
 	};
 
@@ -346,4 +594,7 @@ int setupGeometry()
 
 	return VAO;
 }
+
+
+
 
