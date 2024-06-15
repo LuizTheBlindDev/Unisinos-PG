@@ -24,6 +24,8 @@ using namespace std;
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
 
 // Protótipo da função de callback de teclado
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mode);
@@ -31,6 +33,7 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 // Protótipos das funções
 int setupShader();
 int setupGeometry();
+int loadTexture(string path);
 
 class triangulo {
 public:
@@ -130,22 +133,26 @@ const GLuint WIDTH = 1000, HEIGHT = 1000;
 const GLchar* vertexShaderSource = "#version 450\n"
 "layout (location = 0) in vec3 position;\n"
 "layout (location = 1) in vec3 color;\n"
+"layout(location = 2) in vec2 tex_coord;\n"
 "uniform mat4 model;\n"
 "out vec4 finalColor;\n"
+"out vec2 texCoord;\n"
 "void main()\n"
 "{\n"
-//...pode ter mais linhas de código aqui!
 "gl_Position = model * vec4(position, 1.0);\n"
 "finalColor = vec4(color, 1.0);\n"
+"texCoord = vec2(tex_coord.x, tex_coord.y);\n"
 "}\0";
 
 //Códifo fonte do Fragment Shader (em GLSL): ainda hardcoded
 const GLchar* fragmentShaderSource = "#version 450\n"
 "in vec4 finalColor;\n"
+"in vec2 texCoord;\n"
 "out vec4 color;\n"
+"uniform sampler2D tex_buffer;\n"
 "void main()\n"
 "{\n"
-"color = finalColor;\n"
+"color = texture(tex_buffer, texCoord);\n"
 "}\n\0";
 
 bool rotateX=false, rotateY=false, rotateZ=false, pressW=false, pressA = false, pressS = false, pressD = false, pressQ = false, pressE = false;
@@ -198,13 +205,11 @@ int main()
 	// Compilando e buildando o programa de shader
 	GLuint shaderID = setupShader();
 
+	GLuint texID = loadTexture("../textures/Logosheep.png");
+
 	// Gerando um buffer simples, com a geometria de um triângulo
-
 	GLuint VAO = setupGeometry();
-
-
 	glUseProgram(shaderID);
-
 	glm::mat4 model = glm::mat4(1); //matriz identidade;
 	GLint modelLoc = glGetUniformLocation(shaderID, "model");
 	//
@@ -276,8 +281,14 @@ int main()
 		// Chamada de desenho - drawcall
 		// Poligono Preenchido - GL_TRIANGLES
 		
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, texID);
+
 		glBindVertexArray(VAO);
-		glDrawArrays(GL_TRIANGLES, 0, 36);
+		glDrawArrays(GL_TRIANGLES, 0, 48);
+
+		glBindVertexArray(0); //unbind - desconecta
+		glBindTexture(GL_TEXTURE_2D, 0); //unbind da textura
 
 		// Chamada de desenho - drawcall
 		// CONTORNO - GL_LINE_LOOP
@@ -286,15 +297,10 @@ int main()
 		model = glm::scale(model, glm::vec3(0.3f, 0.3f, 0.3f));
 		model = glm::translate(model, glm::vec3(-2.5f, 0.0f, 0.0f));
 		glUniformMatrix4fv(modelLoc, 1, FALSE, glm::value_ptr(model));
-		glDrawArrays(GL_TRIANGLES, 0, 36);
+		glDrawArrays(GL_TRIANGLES, 0, 48);
 
-		glDrawArrays(GL_POINTS, 0, 36);
+		glDrawArrays(GL_POINTS, 0, 48);
 		glBindVertexArray(0);
-
-
-
-
-
 
 		// Troca os buffers da tela
 		glfwSwapBuffers(window);
@@ -496,94 +502,90 @@ int setupGeometry()
 	GLfloat vertices[] = {
 
 		//Base da pirâmide: 2 triângulos
-		//x    y    z    r    g    b
-		-0.5 , -0.5 , -0.5, 1.0, 0.0, 0.0,
-		-0.5 , -0.5 ,  0.5, 1.0, 0.0, 0.0,
-		 0.5 , -0.5 , -0.5, 1.0, 0.0, 0.0,
+		//x     y      z     r    g    b
+		-0.5 , -0.5 , -0.5, 1.0, 0.0, 0.0, 1.0, 1.0,
+		-0.5 , -0.5 ,  0.5, 1.0, 0.0, 0.0, 1.0, 0.0,
+		 0.5 , -0.5 , -0.5, 1.0, 0.0, 0.0, 0.0, 1.0,
 
-		 -0.5 , -0.5 , 0.5, 1.0, 0.0, 0.0,
-		  0.5 , -0.5 ,  0.5, 1.0, 0.0, 0.0,
-		  0.5 , -0.5 , -0.5, 1.0, 0.0, 0.0,
+		 -0.5 , -0.5 ,  0.5, 1.0, 0.0, 0.0, 1.0, 0.0,
+		  0.5 , -0.5 ,  0.5, 1.0, 0.0, 0.0, 0.0, 0.0,
+		  0.5 , -0.5 , -0.5, 1.0, 0.0, 0.0, 0.0, 0.0,
 
 		 //
-		 -0.5 , -0.5 , -0.5, 0.0, 1.0, 0.0,
-		 -0.5 , 0.5 ,  -0.5, 0.0, 1.0, 0.0,
-		  0.5 , -0.5 , -0.5, 0.0, 1.0, 0.0,
+		 -0.5 , -0.5 , -0.5, 0.0, 1.0, 0.0, 1.0, 1.0,
+		 -0.5 , 0.5 ,  -0.5, 0.0, 1.0, 0.0, 1.0, 0.0,
+		  0.5 , -0.5 , -0.5, 0.0, 1.0, 0.0, 0.0, 1.0,
 
-		 -0.5 ,  0.5 , -0.5, 0.0, 1.0, 0.0,
-		  0.5 ,  0.5 ,  -0.5, 0.0, 1.0, 0.0,
-		  0.5 , -0.5 , -0.5, 0.0, 1.0, 0.0,
+		 -0.5 ,  0.5 ,  -0.5, 0.0, 1.0, 0.0, 1.0, 0.0,
+		  0.5 ,  0.5 ,  -0.5, 0.0, 1.0, 0.0, 0.0, 0.0,
+		  0.5 , -0.5 ,  -0.5, 0.0, 1.0, 0.0, 0.0, 1.0,
 
-		  -0.5 , -0.5 , -0.5, 1.0, 1.0, 0.0,
-		  -0.5 ,  0.5 ,  -0.5, 1.0, 1.0, 0.0,
-		  -0.5 , -0.5 , 0.5, 1.0, 1.0, 0.0,
+		  -0.5 , -0.5 , -0.5, 1.0, 1.0, 0.0, 1.0, 1.0,
+		  -0.5 ,  0.5 , -0.5, 1.0, 1.0, 0.0, 1.0, 0.0,
+		  -0.5 , -0.5 ,  0.5, 1.0, 1.0, 0.0, 0.0, 1.0,
 
-		  -0.5 , 0.5 , -0.5, 1.0, 1.0, 0.0,
-		  -0.5 ,  0.5 ,  0.5, 1.0, 1.0, 0.0,
-		  -0.5 , -0.5 , 0.5, 1.0, 1.0, 0.0,
+		  -0.5 ,  0.5 , -0.5, 1.0, 1.0, 0.0, 1.0, 0.0,
+		  -0.5 ,  0.5 ,  0.5, 1.0, 1.0, 0.0, 0.0, 0.0,
+		  -0.5 , -0.5 ,  0.5, 1.0, 1.0, 0.0, 0.0, 1.0,
 
-		 -0.5 , -0.5 , 0.5, 0.0, 0.0, 1.0,
-		  -0.5 ,  0.5 ,  0.5, 0.0, 0.0, 1.0,
-		  0.5 , -0.5 , 0.5, 0.0, 0.0, 1.0,
+		 -0.5 , -0.5 ,  0.5,  0.0, 0.0, 1.0, 1.0, 1.0,
+		 -0.5 ,  0.5 ,  0.5,  0.0, 0.0, 1.0, 1.0, 0.0,
+		  0.5 , -0.5 ,  0.5,  0.0, 0.0, 1.0, 0.0, 1.0,
 
-		 -0.5 , 0.5 , 0.5, 0.0, 0.0, 1.0,
-		  0.5 ,  0.5 ,  0.5, 0.0, 0.0, 1.0,
-		  0.5 , -0.5 , 0.5, 0.0, 0.0, 1.0,
+		 -0.5 ,  0.5 ,  0.5, 0.0, 0.0, 1.0, 1.0, 0.0,
+		  0.5 ,  0.5 ,  0.5, 0.0, 0.0, 1.0, 0.0, 0.0,
+		  0.5 , -0.5 ,  0.5, 0.0, 0.0, 1.0, 0.0, 1.0,
 
 
-		  0.5 , -0.5 , -0.5, 1.0, 0.0, 1.0,
-		  0.5 ,  0.5 ,  -0.5, 1.0, 0.0, 1.0,
-		  0.5 , -0.5 , 0.5, 1.0, 0.0, 1.0,
+		  0.5 , -0.5 , -0.5, 1.0, 0.0, 1.0, 1.0, 1.0,
+		  0.5 ,  0.5 , -0.5, 1.0, 0.0, 1.0, 1.0, 0.0,
+		  0.5 , -0.5 , 0.5,  1.0, 0.0, 1.0, 0.0, 1.0,
 
-		  0.5 , 0.5 , -0.5, 1.0, 0.0, 1.0,
-		  0.5 ,  0.5 ,  0.5, 1.0, 0.0, 1.0,
-		  0.5 , -0.5 , 0.5, 1.0, 0.0, 1.0,
+		  0.5 ,  0.5 , -0.5, 1.0, 0.0, 1.0, 1.0, 0.0,
+		  0.5 ,  0.5 ,  0.5, 1.0, 0.0, 1.0, 0.0, 0.0,
+		  0.5 , -0.5 ,  0.5, 1.0, 0.0, 1.0, 0.0, 1.0,
 
-		-0.5 , 0.5 , -0.5, 1.0, 0.0, 0.5,
-		-0.5 , 0.5 ,  0.5, 1.0, 0.0, 0.5,
-		 0.5 , 0.5 , -0.5, 1.0, 0.0, 0.5,
+		-0.5 , 0.5 , -0.5, 1.0, 0.0, 0.5, 1.0, 1.0,
+		-0.5 , 0.5 ,  0.5, 1.0, 0.0, 0.5, 1.0, 0.0,
+		 0.5 , 0.5 , -0.5, 1.0, 0.0, 0.5, 0.0, 1.0,
 
-		 -0.5 , 0.5 , 0.5, 1.0, 0.0, 0.5,
-		  0.5 , 0.5 ,  0.5, 1.0, 0.0, 0.5,
-		  0.5 , 0.5 , -0.5, 1.0, 0.0, 0.5,
+		 -0.5 , 0.5 ,  0.5, 1.0, 0.0, 0.5, 1.0, 0.0,
+		  0.5 , 0.5 ,  0.5, 1.0, 0.0, 0.5, 0.0, 0.0,
+		  0.5 , 0.5 , -0.5, 1.0, 0.0, 0.5, 0.0, 1.0,
 
 	};
 
-	GLuint VBO, VAO;
+	unsigned int indices[] = {
+		0, 1, 3, // primeiro triangulo
+		1, 2, 3  // segundo triangulo
+	};
 
-	//Geração do identificador do VBO
+	GLuint VBO, VAO, EBO;
+
 	glGenBuffers(1, &VBO);
+	glGenBuffers(1, &EBO);
 
-	//Faz a conexão (vincula) do buffer como um buffer de array
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-
-	//Envia os dados do array de floats para o buffer da OpenGl
 	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
-	//Geração do identificador do VAO (Vertex Array Object)
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+
 	glGenVertexArrays(1, &VAO);
 
-	// Vincula (bind) o VAO primeiro, e em seguida  conecta e seta o(s) buffer(s) de vértices
-	// e os ponteiros para os atributos 
 	glBindVertexArray(VAO);
 	
-	//Para cada atributo do vertice, criamos um "AttribPointer" (ponteiro para o atributo), indicando: 
-	// Localização no shader * (a localização dos atributos devem ser correspondentes no layout especificado no vertex shader)
-	// Numero de valores que o atributo tem (por ex, 3 coordenadas xyz) 
-	// Tipo do dado
-	// Se está normalizado (entre zero e um)
-	// Tamanho em bytes 
-	// Deslocamento a partir do byte zero 
-	
 	//Atributo posição (x, y, z)
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(GLfloat), (GLvoid*)0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), (GLvoid*)0);
 	glEnableVertexAttribArray(0);
 
 	//Atributo cor (r, g, b)
-	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(GLfloat), (GLvoid*)(3*sizeof(GLfloat)));
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), (GLvoid*)(3*sizeof(GLfloat)));
 	glEnableVertexAttribArray(1);
 
-
+	//Atributo textura (s , t)
+	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
+	glEnableVertexAttribArray(2);
 
 	// Observe que isso é permitido, a chamada para glVertexAttribPointer registrou o VBO como o objeto de buffer de vértice 
 	// atualmente vinculado - para que depois possamos desvincular com segurança
@@ -595,6 +597,47 @@ int setupGeometry()
 	return VAO;
 }
 
+int loadTexture(string path)
+{
+	GLuint texID;
 
+	// Gera o identificador da textura na memória 
+	glGenTextures(1, &texID);
+	glBindTexture(GL_TEXTURE_2D, texID);
+
+	//Ajusta os parâmetros de wrapping e filtering
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+	//Carregamento da imagem
+	int width, height, nrChannels;
+	unsigned char* data = stbi_load(path.c_str(), &width, &height, &nrChannels, 0);
+
+	if (data)
+	{
+		if (nrChannels == 3) //jpg, bmp
+		{
+			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+		}
+		else //png
+		{
+			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+		}
+		glGenerateMipmap(GL_TEXTURE_2D);
+	}
+	else
+	{
+		std::cout << "Failed to load texture" << std::endl;
+	}
+
+	stbi_image_free(data);
+
+	glBindTexture(GL_TEXTURE_2D, 0);
+
+	return texID;
+}
 
 
