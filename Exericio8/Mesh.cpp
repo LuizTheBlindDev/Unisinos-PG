@@ -20,9 +20,13 @@ void Mesh::update()
 	shader->setMat4("model", glm::value_ptr(model));
 }
 
-void Mesh::draw()
+void Mesh::draw(int texID)
 {
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, texID);
+
 	glBindVertexArray(VAO);
 	glDrawArrays(GL_TRIANGLES, 0, nVertices);
 	glBindVertexArray(0);
+	glBindTexture(GL_TEXTURE_2D, 0); 
 }

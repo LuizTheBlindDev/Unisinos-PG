@@ -1,12 +1,3 @@
-/* Hello Triangle - código adaptado de https://learnopengl.com/#!Getting-started/Hello-Triangle
- *
- * Adaptado por Rossana Baptista Queiroz
- * para a disciplina de Processamento Gráfico - Jogos Digitais - Unisinos
- * Versão inicial: 7/4/2017
- * Última atualização em 12/05/2023
- *
- */
-
 #include <iostream>
 #include <string>
 #include <assert.h>
@@ -16,10 +7,8 @@
 
 using namespace std;
 
-// GLAD
+// GLAD e GLFW
 #include <glad/glad.h>
-
-// GLFW
 #include <GLFW/glfw3.h>
 
 //GLM
@@ -31,62 +20,50 @@ using namespace std;
 #include "stb_image.h"
 
 #include "Shader.h"
-
 #include "Mesh.h"
 
-// Protótipo da função de callback de teclado
-void key_callback(GLFWwindow* window, int key, int scancode, int action, int mode);
-
 // Protótipos das funções
+void key_callback(GLFWwindow* window, int key, int scancode, int action, int mode);
 int setupShader();
 int setupGeometry();
 int loadTexture(string path);
 glm::mat4 doAction(string action, glm::mat4 model);
-int loadSimpleOBJ(string filepath, int& nVerts, glm::vec3 color);
+void drawCube(int VAO);
+int loadSimpleOBJ(string filepath, int& nVerts, glm::vec3 color = glm::vec3(1.0, 0.0, 1.0));
+void drawOBJ(GLuint VAO, int nVertices, Shader shader, glm::vec3 position, int texID);
+void key_callbackFP(GLFWwindow* window, int key, int scancode, int action, int mode);
+void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 
-// Dimensões da janela (pode ser alterado em tempo de execução)
+
+// Dimensões da janela
 const GLuint WIDTH = 1000, HEIGHT = 1000;
 
-// Código fonte do Vertex Shader (em GLSL): ainda hardcoded
-const GLchar* vertexShaderSource = "#version 450\n"
-"layout (location = 0) in vec3 position;\n"
-"layout (location = 1) in vec3 color;\n"
-"layout(location = 2) in vec2 tex_coord;\n"
-"uniform mat4 model;\n"
-"out vec4 finalColor;\n"
-"out vec2 texCoord;\n"
-"void main()\n"
-"{\n"
-"gl_Position = model * vec4(position, 1.0);\n"
-"finalColor = vec4(color, 1.0);\n"
-"texCoord = vec2(tex_coord.x, tex_coord.y);\n"
-"}\0";
-
-//Códifo fonte do Fragment Shader (em GLSL): ainda hardcoded
-const GLchar* fragmentShaderSource = "#version 450\n"
-"in vec4 finalColor;\n"
-"in vec2 texCoord;\n"
-"out vec4 color;\n"
-"uniform sampler2D tex_buffer;\n"
-"void main()\n"
-"{\n"
-"color = texture(tex_buffer, texCoord);\n"
-"}\n\0";
-
 string keyAction = "";
+
+glm::vec3 cameraPos = glm::vec3(0.0, 0.0, 3.0);
+glm::vec3 cameraFront = glm::vec3(0.0, 0.0, -1.0);
+glm::vec3 cameraUp = glm::vec3(0.0, 1.0, 0.0);
+
+bool firstMouse = true;
+float lastX, lastY;
+float sensitivity = 0.05;
+float pitch = 0.0, yaw = -90.0;
+
 
 // Função MAIN
 int main()
 {
-	// Inicialização da GLFW
+	// Inicialização da GLFW e configuração de janela
 	glfwInit();
-
-	// Criação da janela GLFW
 	GLFWwindow* window = glfwCreateWindow(WIDTH, HEIGHT, "Ola 3D -- Luiz Silva!", nullptr, nullptr);
 	glfwMakeContextCurrent(window);
 
-	// Fazendo o registro da função de callback para a janela GLFW
-	glfwSetKeyCallback(window, key_callback);
+
+	// callback e config para teclado e mouse
+	glfwSetKeyCallback(window, key_callbackFP);
+	glfwSetCursorPosCallback(window, mouse_callback);
+	glfwSetCursorPos(window, WIDTH / 2, HEIGHT / 2);
+	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
 	// GLAD: carrega todos os ponteiros d funções da OpenGL
 	if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)){
@@ -105,24 +82,23 @@ int main()
 	glViewport(0, 0, width, height);
 
 	// Compilando e buildando o programa de shader
-	// GLuint shaderID = setupShader();
-	 
-	Shader shader("vertex.vs", "fragment.fs");
+	Shader shader("shaders/vertex.vs", "shaders/fragment.fs");
+	glUseProgram(shader.ID);
 
-	GLuint texID = loadTexture("../textures/Logosheep.png");
+	//Matriz de view -- posição e orientação da câmera
+	glm::mat4 view = glm::lookAt(glm::vec3(0.0, 0.0, 3.0), glm::vec3(0.0, 0.0, 0.0), glm::vec3(-1.0, 1.0, 0.0));
+	shader.setMat4("view", value_ptr(view));
 
-	int nVerts;
-	GLuint VAO = loadSimpleOBJ("../../3D_models/Suzanne/suzanneTriLowPoly.obj", nVerts);
-
-
-	Mesh suzanne;
-	suzanne.initialize(VAO, nVerts, &shader, glm::vec3(-2.75, 0.0, 0.0));
-
-
-	glUseProgram(shaderID);
+	//Matriz de projeção perspectiva - definindo o volume de visualização (frustum)
+	glm::mat4 projection = glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.1f, 100.0f);
+	shader.setMat4("projection", glm::value_ptr(projection));
 
 	glEnable(GL_DEPTH_TEST);
+	
+	int nVerts;
+	GLuint VAO = loadSimpleOBJ("../../3D_models/Naves/Destroyer05.obj", nVerts);
 
+	GLuint texID = loadTexture("../../3D_models/Naves/Texture/T_Spase_64.png");
 
 	// Loop da aplicação - "game loop"
 	while (!glfwWindowShouldClose(window))
@@ -137,23 +113,14 @@ int main()
 		glLineWidth(10);
 		glPointSize(20);
 
-		model = glm::mat4(1); 
-		model = doAction(keyAction, model);
+		//Atualizando a posição e orientação da câmera
+		glm::mat4 view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
+		shader.setMat4("view", glm::value_ptr(view));
 
-		glUniformMatrix4fv(modelLoc, 1, FALSE, glm::value_ptr(model));
+		//Atualizando o shader com a posição da câmera
+		shader.setVec3("cameraPos", cameraPos.x, cameraPos.y, cameraPos.z);
 
-		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, texID);
-
-		glBindVertexArray(VAO);
-		glDrawArrays(GL_TRIANGLES, 0, 48);
-
-		glBindVertexArray(0); //unbind - desconecta
-		glBindTexture(GL_TEXTURE_2D, 0); //unbind da textura
-	
-
-		glDrawArrays(GL_POINTS, 0, 48);
-		glBindVertexArray(0);
+		drawOBJ(VAO, nVerts, shader, glm::vec3(0.0, -1.0, -100.0),texID);
 
 		glfwSwapBuffers(window);
 	}
@@ -165,49 +132,7 @@ int main()
 }
 
 
-glm::mat4 doAction(string keyAction, glm::mat4 model) {
 
-	float angle = (GLfloat)glfwGetTime();
-	float scaleAmount = static_cast<float>(glfwGetTime());
-
-	if (keyAction == "rotateX"){
-		model = glm::rotate(model, angle, glm::vec3(1.0f, 0.0f, 0.0f));
-	}
-
-	else if (keyAction == "rotateY"){
-		model = glm::rotate(model, angle, glm::vec3(0.0f, 1.0f, 0.0f));
-	}
-
-	else if (keyAction == "rotateZ"){
-		model = glm::rotate(model, angle, glm::vec3(0.0f, 0.0f, 1.0f));
-	}
-
-	else if (keyAction == "pressW") {
-		model = glm::translate(model, glm::vec3(0.0f, scaleAmount, 0.0f));
-	}
-
-	else if (keyAction == "pressS") {
-		model = glm::translate(model, glm::vec3(0.0f, -scaleAmount, 0.0f));
-	}
-
-	else if (keyAction == "pressA") {
-		model = glm::translate(model, glm::vec3(-scaleAmount, 0.0f, 0.0f));
-	}
-
-	else if (keyAction == "pressD") {
-		model = glm::translate(model, glm::vec3(scaleAmount, 0.0f, 0.0f));
-	}
-
-	else if (keyAction == "pressQ") {
-		model = glm::scale(model, glm::vec3(scaleAmount, scaleAmount, scaleAmount));
-	}
-
-	else if (keyAction == "pressE") {
-		model = glm::scale(model, glm::vec3(1 / scaleAmount, 1 / scaleAmount, 1 / scaleAmount));
-	}
-
-	return model;
-}
 
 // Função de callback de teclado 
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mode)
@@ -297,8 +222,80 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 	}
 }
 
-int setupShader()
-{
+//Função de ação correpondente a tecla pressionada
+glm::mat4 doAction(string keyAction, glm::mat4 model) {
+
+	float angle = (GLfloat)glfwGetTime();
+	float scaleAmount = static_cast<float>(glfwGetTime());
+
+	if (keyAction == "rotateX") {
+		model = glm::rotate(model, angle, glm::vec3(1.0f, 0.0f, 0.0f));
+	}
+
+	else if (keyAction == "rotateY") {
+		model = glm::rotate(model, angle, glm::vec3(0.0f, 1.0f, 0.0f));
+	}
+
+	else if (keyAction == "rotateZ") {
+		model = glm::rotate(model, angle, glm::vec3(0.0f, 0.0f, 1.0f));
+	}
+
+	else if (keyAction == "pressW") {
+		model = glm::translate(model, glm::vec3(0.0f, scaleAmount, 0.0f));
+	}
+
+	else if (keyAction == "pressS") {
+		model = glm::translate(model, glm::vec3(0.0f, -scaleAmount, 0.0f));
+	}
+
+	else if (keyAction == "pressA") {
+		model = glm::translate(model, glm::vec3(-scaleAmount, 0.0f, 0.0f));
+	}
+
+	else if (keyAction == "pressD") {
+		model = glm::translate(model, glm::vec3(scaleAmount, 0.0f, 0.0f));
+	}
+
+	else if (keyAction == "pressQ") {
+		model = glm::scale(model, glm::vec3(scaleAmount, scaleAmount, scaleAmount));
+	}
+
+	else if (keyAction == "pressE") {
+		model = glm::scale(model, glm::vec3(1 / scaleAmount, 1 / scaleAmount, 1 / scaleAmount));
+	}
+
+	return model;
+}
+
+//Configuração de shader(!!refactored!!)
+int setupShader(){
+
+	// Código fonte do Vertex Shader (em GLSL): ainda hardcoded
+	const GLchar* vertexShaderSource = "#version 450\n"
+		"layout (location = 0) in vec3 position;\n"
+		"layout (location = 1) in vec3 color;\n"
+		"layout(location = 2) in vec2 tex_coord;\n"
+		"uniform mat4 model;\n"
+		"out vec4 finalColor;\n"
+		"out vec2 texCoord;\n"
+		"void main()\n"
+		"{\n"
+		"gl_Position = model * vec4(position, 1.0);\n"
+		"finalColor = vec4(color, 1.0);\n"
+		"texCoord = vec2(tex_coord.x, tex_coord.y);\n"
+		"}\0";
+
+	//Códifo fonte do Fragment Shader (em GLSL): ainda hardcoded
+	const GLchar* fragmentShaderSource = "#version 450\n"
+		"in vec4 finalColor;\n"
+		"in vec2 texCoord;\n"
+		"out vec4 color;\n"
+		"uniform sampler2D tex_buffer;\n"
+		"void main()\n"
+		"{\n"
+		"color = texture(tex_buffer, texCoord);\n"
+		"}\n\0";
+
 	// Vertex shader
 	GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
 	glShaderSource(vertexShader, 1, &vertexShaderSource, NULL);
@@ -436,6 +433,7 @@ int setupGeometry(){
 	return VAO;
 }
 
+//carrega textura
 int loadTexture(string path)
 {
 	GLuint texID;
@@ -479,6 +477,26 @@ int loadTexture(string path)
 	return texID;
 }
 
+//Função para desenhar um cubo
+void drawCube(int VAO) {
+	GLuint texID = loadTexture("../textures/Logosheep.png");
+
+
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, texID);
+
+	glBindVertexArray(VAO);
+	glDrawArrays(GL_TRIANGLES, 0, 48);
+
+	glBindVertexArray(0); //unbind - desconecta
+	glBindTexture(GL_TEXTURE_2D, 0); //unbind da textura
+
+
+	glDrawArrays(GL_POINTS, 0, 48);
+	glBindVertexArray(0);
+}
+
+//Função para carregar OBJ
 int loadSimpleOBJ(string filepath, int& nVerts, glm::vec3 color)
 {
 	vector <glm::vec3> vertices;
@@ -633,5 +651,84 @@ int loadSimpleOBJ(string filepath, int& nVerts, glm::vec3 color)
 	glBindVertexArray(0);
 
 	return VAO;
+
+}
+
+//Função para Desenhar OBJ
+void drawOBJ(GLuint VAO, int nVertices,Shader shader, glm::vec3 position, int texID) {
+
+	Mesh obj;
+	obj.initialize(VAO, nVertices, &shader, position);
+
+	//Definindo as propriedades do material da superficie
+	shader.setFloat("ka", 0.2);
+	shader.setFloat("kd", 0.5);
+	shader.setFloat("ks", 0.5);
+	shader.setFloat("q", 10.0);
+
+	//Definindo a fonte de luz pontual
+	shader.setVec3("lightPos", -2.0, 10.0, 2.0);
+	shader.setVec3("lightColor", 1.0, 1.0, 0.0);
+
+	// Chamada de desenho - drawcall
+	shader.setFloat("q", 1.0);
+	obj.update();
+	obj.draw(texID);
+}
+
+//Função callback do teclado para primeira pessoa
+void key_callbackFP(GLFWwindow* window, int key, int scancode, int action, int mode)
+{
+	if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
+		glfwSetWindowShouldClose(window, GL_TRUE);
+
+	float cameraSpeed = 1.00;
+
+	if (key == GLFW_KEY_W)
+	{
+		cameraPos += cameraFront * cameraSpeed;
+	}
+	if (key == GLFW_KEY_S)
+	{
+		cameraPos -= cameraFront * cameraSpeed;
+	}
+	if (key == GLFW_KEY_A)
+	{
+		cameraPos -= glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
+	}
+	if (key == GLFW_KEY_D)
+	{
+		cameraPos += glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
+	}
+}
+
+//Função callback do mouse
+void mouse_callback(GLFWwindow* window, double xpos, double ypos)
+{
+	//cout << xpos << " " << ypos << endl;
+	if (firstMouse)
+	{
+		lastX = xpos;
+		lastY = ypos;
+		firstMouse = false;
+	}
+
+	float offsetx = xpos - lastX;
+	float offsety = lastY - ypos;
+
+	lastX = xpos;
+	lastY = ypos;
+
+	offsetx *= sensitivity;
+	offsety *= sensitivity;
+
+	pitch += offsety;
+	yaw += offsetx;
+
+	glm::vec3 front;
+	front.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
+	front.y = sin(glm::radians(pitch));
+	front.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
+	cameraFront = glm::normalize(front);
 
 }

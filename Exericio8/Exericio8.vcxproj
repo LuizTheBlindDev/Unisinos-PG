@@ -154,8 +154,8 @@
     <None Include="Shaders\vertex.vs" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Header\Mesh.h" />
     <ClInclude Include="Header\Shader.h" />
+    <ClInclude Include="Mesh.h" />
     <ClInclude Include="resource.h" />
   </ItemGroup>
   <ItemGroup>
