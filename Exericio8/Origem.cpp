@@ -21,6 +21,9 @@ using namespace std;
 
 #include "Shader.h"
 #include "Mesh.h"
+#include "Hermite.h"
+#include "Bezier.h"
+#include "CatmullRom.h"
 
 // Protótipos das funções
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mode);
@@ -33,6 +36,10 @@ int loadSimpleOBJ(string filepath, int& nVerts, glm::vec3 color = glm::vec3(1.0,
 void drawOBJ(GLuint VAO, int nVertices, Shader shader, glm::vec3 position, int texID);
 void key_callbackFP(GLFWwindow* window, int key, int scancode, int action, int mode);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
+vector<glm::vec3> generateControlPointsSet();
+glm::mat4 moveOBJ(glm::mat4 model, glm::vec3 position);
+
+GLuint generateControlPointsBuffer(vector <glm::vec3> controlPoints);
 
 
 // Dimensões da janela
@@ -97,8 +104,17 @@ int main()
 	
 	int nVerts;
 	GLuint VAO = loadSimpleOBJ("../../3D_models/Naves/Destroyer05.obj", nVerts);
+	GLuint texID = loadTexture("../../3D_models/Naves/Texture/Destroyer05.mtl");
 
-	GLuint texID = loadTexture("../../3D_models/Naves/Texture/T_Spase_64.png");
+	std::vector<glm::vec3> controlPoints = generateControlPointsSet();
+
+	Bezier bezier;
+	bezier.setControlPoints(controlPoints);
+	bezier.setShader(&shader);
+	bezier.generateCurve(10);
+
+	int nbCurvePoints = bezier.getNbCurvePoints();
+	int i = 0;
 
 	// Loop da aplicação - "game loop"
 	while (!glfwWindowShouldClose(window))
@@ -119,6 +135,9 @@ int main()
 
 		//Atualizando o shader com a posição da câmera
 		shader.setVec3("cameraPos", cameraPos.x, cameraPos.y, cameraPos.z);
+
+		i = (i + 1) % nbCurvePoints;
+		glm::vec3 position = bezier.getPointOnCurve(i);
 
 		drawOBJ(VAO, nVerts, shader, glm::vec3(0.0, -1.0, -100.0),texID);
 
@@ -731,4 +750,59 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos)
 	front.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
 	cameraFront = glm::normalize(front);
 
+}
+
+vector<glm::vec3> generateControlPointsSet()
+{
+	vector <glm::vec3> controlPoints;
+
+	controlPoints.push_back(glm::vec3(-0.6, -0.4, 0.0));
+	controlPoints.push_back(glm::vec3(-0.4, -0.6, 0.0));
+	controlPoints.push_back(glm::vec3(-0.2, -0.2, 0.0));
+	controlPoints.push_back(glm::vec3(0.0, 0.0, 0.0));
+	controlPoints.push_back(glm::vec3(0.2, 0.2, 0.0));
+	controlPoints.push_back(glm::vec3(0.4, 0.6, 0.0));
+	controlPoints.push_back(glm::vec3(0.6, 0.4, 0.0));
+
+	return controlPoints;
+}
+
+GLuint generateControlPointsBuffer(vector <glm::vec3> controlPoints)
+{
+	GLuint VBO, VAO;
+
+	//Geração do identificador do VBO
+	glGenBuffers(1, &VBO);
+
+	//Faz a conexão (vincula) do buffer como um buffer de array
+	glBindBuffer(GL_ARRAY_BUFFER, VBO);
+
+	//Envia os dados do array de floats para o buffer da OpenGl
+	glBufferData(GL_ARRAY_BUFFER, controlPoints.size() * sizeof(GLfloat) * 3, controlPoints.data(), GL_STATIC_DRAW);
+
+	//Geração do identificador do VAO (Vertex Array Object)
+	glGenVertexArrays(1, &VAO);
+
+	// Vincula (bind) o VAO primeiro, e em seguida  conecta e seta o(s) buffer(s) de vértices
+	// e os ponteiros para os atributos 
+	glBindVertexArray(VAO);
+
+	//Atributo posição (x, y, z)
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (GLvoid*)0);
+	glEnableVertexAttribArray(0);
+
+	// Observe que isso é permitido, a chamada para glVertexAttribPointer registrou o VBO como o objeto de buffer de vértice 
+	// atualmente vinculado - para que depois possamos desvincular com segurança
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+	// Desvincula o VAO (é uma boa prática desvincular qualquer buffer ou array para evitar bugs medonhos)
+	glBindVertexArray(0);
+
+	return VAO;
+}
+
+glm::mat4 moveOBJ(glm::mat4 model, glm::vec3 position) {
+
+	model = glm::translate(model, position);
+	return model;
 }

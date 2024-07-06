@@ -144,6 +144,10 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\glad.c" />
+    <ClCompile Include="Bezier.cpp" />
+    <ClCompile Include="CatmullRom.cpp" />
+    <ClCompile Include="Curve.cpp" />
+    <ClCompile Include="Hermite.cpp" />
     <ClCompile Include="Mesh.cpp" />
     <ClCompile Include="Origem.cpp" />
     <ClCompile Include="Shader.cpp" />
@@ -154,7 +158,11 @@
     <None Include="Shaders\vertex.vs" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Bezier.h" />
+    <ClInclude Include="CatmullRom.h" />
+    <ClInclude Include="Curve.h" />
     <ClInclude Include="Header\Shader.h" />
+    <ClInclude Include="Hermite.h" />
     <ClInclude Include="Mesh.h" />
     <ClInclude Include="resource.h" />
   </ItemGroup>
