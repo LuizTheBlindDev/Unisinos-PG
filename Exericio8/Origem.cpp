@@ -104,9 +104,9 @@ int main()
 	GLuint VAOd = loadSimpleOBJ("../../3D_models/Naves/Destroyer05.obj", nVerts);
 	GLuint texDest = loadTexture("C:/RepositorioVS/3D_Models/Naves/Texture/T_Spase_64.png");
 
-	int nVerts;
-	GLuint VAOl = loadSimpleOBJ("../../3D_models/Naves/LightCruiser05.obj", nVerts);
-	GLuint texLight = loadTexture("C:/RepositorioVS/3D_Models/Naves/Texture/T_Spase_Blue.png");
+	//int nVerts;
+	//GLuint VAOl = loadSimpleOBJ("../../3D_models/Naves/LightCruiser05.obj", nVerts);
+	//GLuint texLight = loadTexture("C:/RepositorioVS/3D_Models/Naves/Texture/T_Spase_Blue.png");
 
 	std::vector<glm::vec3> controlPoints = generateControlPointsSet();
 
@@ -141,14 +141,14 @@ int main()
 		i = (i + 1) % nbCurvePoints;
 		glm::vec3 position = bezier.getPointOnCurve(i);
 
-		drawOBJ(VAOl, nVerts, shader, position, texLight);
+		//drawOBJ(VAOl, nVerts, shader, position, texLight);
 		drawOBJ(VAOd, nVerts, shader, position, texDest);
 
 		glfwSwapBuffers(window);
 	}
 	// Pede pra OpenGL desalocar os buffers
 	glDeleteVertexArrays(1, &VAOd);
-	glDeleteVertexArrays(1, &VAOl);
+	//glDeleteVertexArrays(1, &VAOl);
 	// Finaliza a execução da GLFW, limpando os recursos alocados por ela
 	glfwTerminate();
 	return 0;
