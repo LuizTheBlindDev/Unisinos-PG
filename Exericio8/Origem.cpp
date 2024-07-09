@@ -37,9 +37,6 @@ void drawOBJ(GLuint VAO, int nVertices, Shader shader, glm::vec3 position, int t
 void key_callbackFP(GLFWwindow* window, int key, int scancode, int action, int mode);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 vector<glm::vec3> generateControlPointsSet();
-glm::mat4 moveOBJ(glm::mat4 model, glm::vec3 position);
-
-GLuint generateControlPointsBuffer(vector <glm::vec3> controlPoints);
 
 
 // Dimensões da janela
@@ -91,6 +88,7 @@ int main()
 	// Compilando e buildando o programa de shader
 	Shader shader("shaders/vertex.vs", "shaders/fragment.fs");
 	glUseProgram(shader.ID);
+	glUniform1i(glGetUniformLocation(shader.ID, "sp"), 0);
 
 	//Matriz de view -- posição e orientação da câmera
 	glm::mat4 view = glm::lookAt(glm::vec3(0.0, 0.0, 3.0), glm::vec3(0.0, 0.0, 0.0), glm::vec3(-1.0, 1.0, 0.0));
@@ -103,15 +101,19 @@ int main()
 	glEnable(GL_DEPTH_TEST);
 	
 	int nVerts;
-	GLuint VAO = loadSimpleOBJ("../../3D_models/Naves/Destroyer05.obj", nVerts);
-	GLuint texID = loadTexture("../../3D_models/Naves/Texture/Destroyer05.mtl");
+	GLuint VAOd = loadSimpleOBJ("../../3D_models/Naves/Destroyer05.obj", nVerts);
+	GLuint texDest = loadTexture("C:/RepositorioVS/3D_Models/Naves/Texture/T_Spase_64.png");
+
+	int nVerts;
+	GLuint VAOl = loadSimpleOBJ("../../3D_models/Naves/LightCruiser05.obj", nVerts);
+	GLuint texLight = loadTexture("C:/RepositorioVS/3D_Models/Naves/Texture/T_Spase_Blue.png");
 
 	std::vector<glm::vec3> controlPoints = generateControlPointsSet();
 
 	Bezier bezier;
 	bezier.setControlPoints(controlPoints);
 	bezier.setShader(&shader);
-	bezier.generateCurve(10);
+	bezier.generateCurve(2000);
 
 	int nbCurvePoints = bezier.getNbCurvePoints();
 	int i = 0;
@@ -139,18 +141,18 @@ int main()
 		i = (i + 1) % nbCurvePoints;
 		glm::vec3 position = bezier.getPointOnCurve(i);
 
-		drawOBJ(VAO, nVerts, shader, glm::vec3(0.0, -1.0, -100.0),texID);
+		drawOBJ(VAOl, nVerts, shader, position, texLight);
+		drawOBJ(VAOd, nVerts, shader, position, texDest);
 
 		glfwSwapBuffers(window);
 	}
 	// Pede pra OpenGL desalocar os buffers
-	glDeleteVertexArrays(1, &VAO);
+	glDeleteVertexArrays(1, &VAOd);
+	glDeleteVertexArrays(1, &VAOl);
 	// Finaliza a execução da GLFW, limpando os recursos alocados por ela
 	glfwTerminate();
 	return 0;
 }
-
-
 
 
 // Função de callback de teclado 
@@ -677,7 +679,7 @@ int loadSimpleOBJ(string filepath, int& nVerts, glm::vec3 color)
 void drawOBJ(GLuint VAO, int nVertices,Shader shader, glm::vec3 position, int texID) {
 
 	Mesh obj;
-	obj.initialize(VAO, nVertices, &shader, position);
+	obj.initialize(VAO, nVertices, &shader, position, glm::vec3(0.5,0.5,0.5), 180.0);
 
 	//Definindo as propriedades do material da superficie
 	shader.setFloat("ka", 0.2);
@@ -687,7 +689,7 @@ void drawOBJ(GLuint VAO, int nVertices,Shader shader, glm::vec3 position, int te
 
 	//Definindo a fonte de luz pontual
 	shader.setVec3("lightPos", -2.0, 10.0, 2.0);
-	shader.setVec3("lightColor", 1.0, 1.0, 0.0);
+	shader.setVec3("lightColor", 1.0, 1.0, 1.0);
 
 	// Chamada de desenho - drawcall
 	shader.setFloat("q", 1.0);
@@ -756,53 +758,57 @@ vector<glm::vec3> generateControlPointsSet()
 {
 	vector <glm::vec3> controlPoints;
 
-	controlPoints.push_back(glm::vec3(-0.6, -0.4, 0.0));
-	controlPoints.push_back(glm::vec3(-0.4, -0.6, 0.0));
-	controlPoints.push_back(glm::vec3(-0.2, -0.2, 0.0));
-	controlPoints.push_back(glm::vec3(0.0, 0.0, 0.0));
-	controlPoints.push_back(glm::vec3(0.2, 0.2, 0.0));
-	controlPoints.push_back(glm::vec3(0.4, 0.6, 0.0));
-	controlPoints.push_back(glm::vec3(0.6, 0.4, 0.0));
+	controlPoints.push_back(glm::vec3(-200.0, -0.4, -50.0 ));
+	controlPoints.push_back(glm::vec3(-180.0, -0.4, -50.0 ));
+	controlPoints.push_back(glm::vec3(-160.0, -0.4, -50.0 ));
+	controlPoints.push_back(glm::vec3(-140.0, -0.4, -50.0 ));
+	controlPoints.push_back(glm::vec3(-120.0, -0.4, -50.0 ));
+	controlPoints.push_back(glm::vec3(-100.0, -0.4, -50.0 ));
+	controlPoints.push_back(glm::vec3( -80.0, -0.4, -50.0 ));
+	controlPoints.push_back(glm::vec3( -60.0, -0.4, -50.0 ));
+	controlPoints.push_back(glm::vec3( -40.0, -0.6, -50.0 ));
+	controlPoints.push_back(glm::vec3( -20.0, -0.2, -50.0 ));
+	controlPoints.push_back(glm::vec3(   0.0,  0.0, -50.0 ));
+	controlPoints.push_back(glm::vec3(  20.0,  0.2, -50.0 ));
+	controlPoints.push_back(glm::vec3(  40.0,  0.6, -50.0 ));
+	controlPoints.push_back(glm::vec3(  60.0,  0.4, -50.0 ));
+	controlPoints.push_back(glm::vec3(  80.0,  0.4, -50.0 ));
+	controlPoints.push_back(glm::vec3( 100.0,  0.4, -50.0 ));
+	controlPoints.push_back(glm::vec3( 120.0,  0.4, -50.0 ));
+	controlPoints.push_back(glm::vec3( 140.0,  0.4, -50.0 ));
+	controlPoints.push_back(glm::vec3( 160.0,  0.4, -50.0 ));
+	controlPoints.push_back(glm::vec3( 180.0,  0.4, -50.0 ));
+	controlPoints.push_back(glm::vec3( 200.0,  0.4, -50.0 ));
 
 	return controlPoints;
 }
 
-GLuint generateControlPointsBuffer(vector <glm::vec3> controlPoints)
+vector<glm::vec3> generateControlPointsSetLight()
 {
-	GLuint VBO, VAO;
+	vector <glm::vec3> controlPoints;
 
-	//Geração do identificador do VBO
-	glGenBuffers(1, &VBO);
+	controlPoints.push_back(glm::vec3( -200.0, -30.0, -10.0));
+	controlPoints.push_back(glm::vec3( -180.0, -30.0, -10.0));
+	controlPoints.push_back(glm::vec3( -160.0, -30.0, -10.0));
+	controlPoints.push_back(glm::vec3( -140.0, -30.0, -10.0));
+	controlPoints.push_back(glm::vec3( -120.0, -30.0, -10.0));
+	controlPoints.push_back(glm::vec3( -100.0, -30.0, -10.0));
+	controlPoints.push_back(glm::vec3(  -80.0, -30.0, -10.0));
+	controlPoints.push_back(glm::vec3(  -60.0, -30.0, -10.0));
+	controlPoints.push_back(glm::vec3(  -40.0, -30.0, -10.0));
+	controlPoints.push_back(glm::vec3(  -20.0, -30.0, -10.0));
+	controlPoints.push_back(glm::vec3(    0.0, -30.0, -10.0));
+	controlPoints.push_back(glm::vec3(   20.0, -30.0, -10.0));
+	controlPoints.push_back(glm::vec3(   40.0, -30.0, -10.0));
+	controlPoints.push_back(glm::vec3(   60.0, -30.0, -10.0));
+	controlPoints.push_back(glm::vec3(   80.0, -30.0, -10.0));
+	controlPoints.push_back(glm::vec3(  100.0, -30.0, -10.0));
+	controlPoints.push_back(glm::vec3(  120.0, -30.0, -10.0));
+	controlPoints.push_back(glm::vec3(  140.0, -30.0, -10.0));
+	controlPoints.push_back(glm::vec3(  160.0, -30.0, -10.0));
+	controlPoints.push_back(glm::vec3(  180.0, -30.0, -10.0));
+	controlPoints.push_back(glm::vec3(  200.0, -30.0, -10.0));
 
-	//Faz a conexão (vincula) do buffer como um buffer de array
-	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-
-	//Envia os dados do array de floats para o buffer da OpenGl
-	glBufferData(GL_ARRAY_BUFFER, controlPoints.size() * sizeof(GLfloat) * 3, controlPoints.data(), GL_STATIC_DRAW);
-
-	//Geração do identificador do VAO (Vertex Array Object)
-	glGenVertexArrays(1, &VAO);
-
-	// Vincula (bind) o VAO primeiro, e em seguida  conecta e seta o(s) buffer(s) de vértices
-	// e os ponteiros para os atributos 
-	glBindVertexArray(VAO);
-
-	//Atributo posição (x, y, z)
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (GLvoid*)0);
-	glEnableVertexAttribArray(0);
-
-	// Observe que isso é permitido, a chamada para glVertexAttribPointer registrou o VBO como o objeto de buffer de vértice 
-	// atualmente vinculado - para que depois possamos desvincular com segurança
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-	// Desvincula o VAO (é uma boa prática desvincular qualquer buffer ou array para evitar bugs medonhos)
-	glBindVertexArray(0);
-
-	return VAO;
+	return controlPoints;
 }
 
-glm::mat4 moveOBJ(glm::mat4 model, glm::vec3 position) {
-
-	model = glm::translate(model, position);
-	return model;
-}

@@ -4,6 +4,7 @@
 in vec3 finalColor;
 in vec3 fragPos;
 in vec3 scaledNormal;
+in vec2 tex;
 
 out vec4 color;
 
@@ -12,6 +13,7 @@ uniform float ka;
 uniform float kd;
 uniform float ks;
 uniform float q;
+uniform sampler2D sp;
 
 //Propriedades da fonte de luz
 uniform vec3 lightPos;
@@ -38,7 +40,8 @@ void main()
 	spec = pow(spec,q);
 	vec3 specular = ks * spec * lightColor;
 
-	vec3 result = (ambient + diffuse) * finalColor + specular;
+	vec4 objColor = texture(sp, tex);
+	vec3 result = (ambient + diffuse) * vec3( objColor )+ specular;
 
 	color = vec4(result,1.0);
 }
