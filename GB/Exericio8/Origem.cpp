@@ -33,10 +33,11 @@ int loadTexture(string path);
 glm::mat4 doAction(string action, glm::mat4 model);
 void drawCube(int VAO);
 int loadSimpleOBJ(string filepath, int& nVerts, glm::vec3 color = glm::vec3(1.0, 0.0, 1.0));
-void drawOBJ(GLuint VAO, int nVertices, Shader shader, glm::vec3 position, int texID);
+void drawOBJ(GLuint VAO, int nVertices, Shader shader, glm::vec3 position, int texID, glm::vec3 scale, float angle, glm::vec3 axis = glm::vec3(0.0, 0.0, 1.0));
 void key_callbackFP(GLFWwindow* window, int key, int scancode, int action, int mode);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 vector<glm::vec3> generateControlPointsSet();
+vector<glm::vec3> generateControlPointsSetLight();
 
 
 // Dimensões da janela
@@ -70,7 +71,7 @@ int main()
 	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
 	// GLAD: carrega todos os ponteiros d funções da OpenGL
-	if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)){
+	if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
 		std::cout << "Failed to initialize GLAD" << std::endl;
 	}
 
@@ -99,24 +100,38 @@ int main()
 	shader.setMat4("projection", glm::value_ptr(projection));
 
 	glEnable(GL_DEPTH_TEST);
-	
-	int nVerts;
-	GLuint VAOd = loadSimpleOBJ("../../3D_models/Naves/Destroyer05.obj", nVerts);
-	GLuint texDest = loadTexture("C:/RepositorioVS/3D_Models/Naves/Texture/T_Spase_64.png");
 
-	//int nVerts;
-	//GLuint VAOl = loadSimpleOBJ("../../3D_models/Naves/LightCruiser05.obj", nVerts);
-	//GLuint texLight = loadTexture("C:/RepositorioVS/3D_Models/Naves/Texture/T_Spase_Blue.png");
+	int nVerts;
+	GLuint VAO = loadSimpleOBJ("../../3D_models/Naves/Destroyer05.obj", nVerts);
+	GLuint texDest = loadTexture("../../3D_Models/Naves/Texture/T_Spase_64.png");
+
+	int nVertsl;
+	GLuint VAO2 = loadSimpleOBJ("../../3D_models/Naves/LightCruiser05.obj", nVertsl);
+	GLuint texlight = loadTexture("../../3D_Models/Naves/Texture/T_Spase_blue.png");
+
+	int nVertsP;
+	GLuint VAO3 = loadSimpleOBJ("../../3D_models/Planetas/planeta.obj", nVertsP);
+	GLuint texP1 = loadTexture("../../3D_Models/Planetas/Terra.jpg");
+
+	GLuint VAO4 = loadSimpleOBJ("../../3D_models/Planetas/planeta.obj", nVertsP);
+	GLuint texP2 = loadTexture("../../3D_Models/Planetas/2k_mercury.jpg");
 
 	std::vector<glm::vec3> controlPoints = generateControlPointsSet();
+	std::vector<glm::vec3> controlPointsL = generateControlPointsSetLight();
 
-	Bezier bezier;
+	Bezier bezier, light;
 	bezier.setControlPoints(controlPoints);
 	bezier.setShader(&shader);
-	bezier.generateCurve(2000);
+	bezier.generateCurve(15000);
+
+	light.setControlPoints(controlPointsL);
+	light.setShader(&shader);
+	light.generateCurve(10000);
 
 	int nbCurvePoints = bezier.getNbCurvePoints();
+	int nbCurvePointsL = light.getNbCurvePoints();
 	int i = 0;
+	int l = 0;
 
 	// Loop da aplicação - "game loop"
 	while (!glfwWindowShouldClose(window))
@@ -139,17 +154,21 @@ int main()
 		shader.setVec3("cameraPos", cameraPos.x, cameraPos.y, cameraPos.z);
 
 		i = (i + 1) % nbCurvePoints;
-		glm::vec3 position = bezier.getPointOnCurve(i);
+		glm::vec3 positionD = bezier.getPointOnCurve(i);
+		l = (l + 1) % nbCurvePointsL;
+		glm::vec3 positionL = light.getPointOnCurve(l);
 
-		//drawOBJ(VAOl, nVerts, shader, position, texLight);
-		drawOBJ(VAOd, nVerts, shader, position, texDest);
+		drawOBJ(VAO, nVerts, shader, positionD, texDest, glm::vec3(0.5, 0.5, 0.5), 230.0, glm::vec3(0.0, 1.0, 0.0));
+		drawOBJ(VAO2, nVertsl, shader, positionL, texlight, glm::vec3(0.5, 0.5, 0.5), 0.0);
+		drawOBJ(VAO3, nVertsP, shader, glm::vec3(-30.0, 0.0, -50.0), texP1, glm::vec3(10.0, 10.0, 10.0), 0.0);
+		drawOBJ(VAO4, nVertsP, shader, glm::vec3(20.0, -20.0, -60.0), texP2, glm::vec3(15.0, 15.0, 15.0), 0.0);
 
 		glfwSwapBuffers(window);
 	}
 	// Pede pra OpenGL desalocar os buffers
-	glDeleteVertexArrays(1, &VAOd);
-	//glDeleteVertexArrays(1, &VAOl);
-	// Finaliza a execução da GLFW, limpando os recursos alocados por ela
+	glDeleteVertexArrays(1, &VAO);
+	glDeleteVertexArrays(1, &VAO2);
+	glDeleteVertexArrays(1, &VAO3);
 	glfwTerminate();
 	return 0;
 }
@@ -188,7 +207,7 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 		else keyAction = "rotateZ";
 	}
 	if (key == GLFW_KEY_W && action == GLFW_PRESS) {
-		 keyAction = "pressW";
+		keyAction = "pressW";
 	}
 	if (key == GLFW_KEY_W && action == GLFW_RELEASE) {
 		keyAction = " ";
@@ -289,7 +308,7 @@ glm::mat4 doAction(string keyAction, glm::mat4 model) {
 }
 
 //Configuração de shader(!!refactored!!)
-int setupShader(){
+int setupShader() {
 
 	// Código fonte do Vertex Shader (em GLSL): ainda hardcoded
 	const GLchar* vertexShaderSource = "#version 450\n"
@@ -359,7 +378,7 @@ int setupShader(){
 }
 
 //Geometria de um cubo com textura
-int setupGeometry(){
+int setupGeometry() {
 	GLfloat vertices[] = {
 
 		//Base da pirâmide: 2 triângulos
@@ -372,47 +391,47 @@ int setupGeometry(){
 		  0.5 , -0.5 ,  0.5, 1.0, 0.0, 0.0, 0.0, 0.0,
 		  0.5 , -0.5 , -0.5, 1.0, 0.0, 0.0, 0.0, 0.0,
 
-		 //
-		 -0.5 , -0.5 , -0.5, 0.0, 1.0, 0.0, 1.0, 1.0,
-		 -0.5 , 0.5 ,  -0.5, 0.0, 1.0, 0.0, 1.0, 0.0,
-		  0.5 , -0.5 , -0.5, 0.0, 1.0, 0.0, 0.0, 1.0,
+		  //
+		  -0.5 , -0.5 , -0.5, 0.0, 1.0, 0.0, 1.0, 1.0,
+		  -0.5 , 0.5 ,  -0.5, 0.0, 1.0, 0.0, 1.0, 0.0,
+		   0.5 , -0.5 , -0.5, 0.0, 1.0, 0.0, 0.0, 1.0,
 
-		 -0.5 ,  0.5 ,  -0.5, 0.0, 1.0, 0.0, 1.0, 0.0,
-		  0.5 ,  0.5 ,  -0.5, 0.0, 1.0, 0.0, 0.0, 0.0,
-		  0.5 , -0.5 ,  -0.5, 0.0, 1.0, 0.0, 0.0, 1.0,
+		  -0.5 ,  0.5 ,  -0.5, 0.0, 1.0, 0.0, 1.0, 0.0,
+		   0.5 ,  0.5 ,  -0.5, 0.0, 1.0, 0.0, 0.0, 0.0,
+		   0.5 , -0.5 ,  -0.5, 0.0, 1.0, 0.0, 0.0, 1.0,
 
-		  -0.5 , -0.5 , -0.5, 1.0, 1.0, 0.0, 1.0, 1.0,
-		  -0.5 ,  0.5 , -0.5, 1.0, 1.0, 0.0, 1.0, 0.0,
-		  -0.5 , -0.5 ,  0.5, 1.0, 1.0, 0.0, 0.0, 1.0,
+		   -0.5 , -0.5 , -0.5, 1.0, 1.0, 0.0, 1.0, 1.0,
+		   -0.5 ,  0.5 , -0.5, 1.0, 1.0, 0.0, 1.0, 0.0,
+		   -0.5 , -0.5 ,  0.5, 1.0, 1.0, 0.0, 0.0, 1.0,
 
-		  -0.5 ,  0.5 , -0.5, 1.0, 1.0, 0.0, 1.0, 0.0,
-		  -0.5 ,  0.5 ,  0.5, 1.0, 1.0, 0.0, 0.0, 0.0,
-		  -0.5 , -0.5 ,  0.5, 1.0, 1.0, 0.0, 0.0, 1.0,
+		   -0.5 ,  0.5 , -0.5, 1.0, 1.0, 0.0, 1.0, 0.0,
+		   -0.5 ,  0.5 ,  0.5, 1.0, 1.0, 0.0, 0.0, 0.0,
+		   -0.5 , -0.5 ,  0.5, 1.0, 1.0, 0.0, 0.0, 1.0,
 
-		 -0.5 , -0.5 ,  0.5,  0.0, 0.0, 1.0, 1.0, 1.0,
-		 -0.5 ,  0.5 ,  0.5,  0.0, 0.0, 1.0, 1.0, 0.0,
-		  0.5 , -0.5 ,  0.5,  0.0, 0.0, 1.0, 0.0, 1.0,
+		  -0.5 , -0.5 ,  0.5,  0.0, 0.0, 1.0, 1.0, 1.0,
+		  -0.5 ,  0.5 ,  0.5,  0.0, 0.0, 1.0, 1.0, 0.0,
+		   0.5 , -0.5 ,  0.5,  0.0, 0.0, 1.0, 0.0, 1.0,
 
-		 -0.5 ,  0.5 ,  0.5, 0.0, 0.0, 1.0, 1.0, 0.0,
-		  0.5 ,  0.5 ,  0.5, 0.0, 0.0, 1.0, 0.0, 0.0,
-		  0.5 , -0.5 ,  0.5, 0.0, 0.0, 1.0, 0.0, 1.0,
+		  -0.5 ,  0.5 ,  0.5, 0.0, 0.0, 1.0, 1.0, 0.0,
+		   0.5 ,  0.5 ,  0.5, 0.0, 0.0, 1.0, 0.0, 0.0,
+		   0.5 , -0.5 ,  0.5, 0.0, 0.0, 1.0, 0.0, 1.0,
 
 
-		  0.5 , -0.5 , -0.5, 1.0, 0.0, 1.0, 1.0, 1.0,
-		  0.5 ,  0.5 , -0.5, 1.0, 0.0, 1.0, 1.0, 0.0,
-		  0.5 , -0.5 , 0.5,  1.0, 0.0, 1.0, 0.0, 1.0,
+		   0.5 , -0.5 , -0.5, 1.0, 0.0, 1.0, 1.0, 1.0,
+		   0.5 ,  0.5 , -0.5, 1.0, 0.0, 1.0, 1.0, 0.0,
+		   0.5 , -0.5 , 0.5,  1.0, 0.0, 1.0, 0.0, 1.0,
 
-		  0.5 ,  0.5 , -0.5, 1.0, 0.0, 1.0, 1.0, 0.0,
-		  0.5 ,  0.5 ,  0.5, 1.0, 0.0, 1.0, 0.0, 0.0,
-		  0.5 , -0.5 ,  0.5, 1.0, 0.0, 1.0, 0.0, 1.0,
+		   0.5 ,  0.5 , -0.5, 1.0, 0.0, 1.0, 1.0, 0.0,
+		   0.5 ,  0.5 ,  0.5, 1.0, 0.0, 1.0, 0.0, 0.0,
+		   0.5 , -0.5 ,  0.5, 1.0, 0.0, 1.0, 0.0, 1.0,
 
-		-0.5 , 0.5 , -0.5, 1.0, 0.0, 0.5, 1.0, 1.0,
-		-0.5 , 0.5 ,  0.5, 1.0, 0.0, 0.5, 1.0, 0.0,
-		 0.5 , 0.5 , -0.5, 1.0, 0.0, 0.5, 0.0, 1.0,
-
+		 -0.5 , 0.5 , -0.5, 1.0, 0.0, 0.5, 1.0, 1.0,
 		 -0.5 , 0.5 ,  0.5, 1.0, 0.0, 0.5, 1.0, 0.0,
-		  0.5 , 0.5 ,  0.5, 1.0, 0.0, 0.5, 0.0, 0.0,
 		  0.5 , 0.5 , -0.5, 1.0, 0.0, 0.5, 0.0, 1.0,
+
+		  -0.5 , 0.5 ,  0.5, 1.0, 0.0, 0.5, 1.0, 0.0,
+		   0.5 , 0.5 ,  0.5, 1.0, 0.0, 0.5, 0.0, 0.0,
+		   0.5 , 0.5 , -0.5, 1.0, 0.0, 0.5, 0.0, 1.0,
 
 	};
 
@@ -435,13 +454,13 @@ int setupGeometry(){
 	glGenVertexArrays(1, &VAO);
 
 	glBindVertexArray(VAO);
-	
+
 	//Atributo posição (x, y, z)
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), (GLvoid*)0);
 	glEnableVertexAttribArray(0);
 
 	//Atributo cor (r, g, b)
-	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), (GLvoid*)(3*sizeof(GLfloat)));
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), (GLvoid*)(3 * sizeof(GLfloat)));
 	glEnableVertexAttribArray(1);
 
 	//Atributo textura (s , t)
@@ -676,10 +695,10 @@ int loadSimpleOBJ(string filepath, int& nVerts, glm::vec3 color)
 }
 
 //Função para Desenhar OBJ
-void drawOBJ(GLuint VAO, int nVertices,Shader shader, glm::vec3 position, int texID) {
+void drawOBJ(GLuint VAO, int nVertices, Shader shader, glm::vec3 position, int texID, glm::vec3 scale, float angle, glm::vec3 axis) {
 
 	Mesh obj;
-	obj.initialize(VAO, nVertices, &shader, position, glm::vec3(0.5,0.5,0.5), 180.0);
+	obj.initialize(VAO, nVertices, &shader, position, scale, angle, axis);
 
 	//Definindo as propriedades do material da superficie
 	shader.setFloat("ka", 0.2);
@@ -758,27 +777,15 @@ vector<glm::vec3> generateControlPointsSet()
 {
 	vector <glm::vec3> controlPoints;
 
-	controlPoints.push_back(glm::vec3(-200.0, -0.4, -50.0 ));
-	controlPoints.push_back(glm::vec3(-180.0, -0.4, -50.0 ));
-	controlPoints.push_back(glm::vec3(-160.0, -0.4, -50.0 ));
-	controlPoints.push_back(glm::vec3(-140.0, -0.4, -50.0 ));
-	controlPoints.push_back(glm::vec3(-120.0, -0.4, -50.0 ));
-	controlPoints.push_back(glm::vec3(-100.0, -0.4, -50.0 ));
-	controlPoints.push_back(glm::vec3( -80.0, -0.4, -50.0 ));
-	controlPoints.push_back(glm::vec3( -60.0, -0.4, -50.0 ));
-	controlPoints.push_back(glm::vec3( -40.0, -0.6, -50.0 ));
-	controlPoints.push_back(glm::vec3( -20.0, -0.2, -50.0 ));
-	controlPoints.push_back(glm::vec3(   0.0,  0.0, -50.0 ));
-	controlPoints.push_back(glm::vec3(  20.0,  0.2, -50.0 ));
-	controlPoints.push_back(glm::vec3(  40.0,  0.6, -50.0 ));
-	controlPoints.push_back(glm::vec3(  60.0,  0.4, -50.0 ));
-	controlPoints.push_back(glm::vec3(  80.0,  0.4, -50.0 ));
-	controlPoints.push_back(glm::vec3( 100.0,  0.4, -50.0 ));
-	controlPoints.push_back(glm::vec3( 120.0,  0.4, -50.0 ));
-	controlPoints.push_back(glm::vec3( 140.0,  0.4, -50.0 ));
-	controlPoints.push_back(glm::vec3( 160.0,  0.4, -50.0 ));
-	controlPoints.push_back(glm::vec3( 180.0,  0.4, -50.0 ));
-	controlPoints.push_back(glm::vec3( 200.0,  0.4, -50.0 ));
+	controlPoints.push_back(glm::vec3(-200.0, -200.0, -50.0));
+
+	controlPoints.push_back(glm::vec3(-100.0, -100.0, -50.0));
+
+	controlPoints.push_back(glm::vec3(0.0, 0.0, -50.0));
+
+	controlPoints.push_back(glm::vec3(100.0, 100.0, -50.0));
+
+	controlPoints.push_back(glm::vec3(200.0, 200.0, -50.0));
 
 	return controlPoints;
 }
@@ -787,28 +794,71 @@ vector<glm::vec3> generateControlPointsSetLight()
 {
 	vector <glm::vec3> controlPoints;
 
-	controlPoints.push_back(glm::vec3( -200.0, -30.0, -10.0));
-	controlPoints.push_back(glm::vec3( -180.0, -30.0, -10.0));
-	controlPoints.push_back(glm::vec3( -160.0, -30.0, -10.0));
-	controlPoints.push_back(glm::vec3( -140.0, -30.0, -10.0));
-	controlPoints.push_back(glm::vec3( -120.0, -30.0, -10.0));
-	controlPoints.push_back(glm::vec3( -100.0, -30.0, -10.0));
-	controlPoints.push_back(glm::vec3(  -80.0, -30.0, -10.0));
-	controlPoints.push_back(glm::vec3(  -60.0, -30.0, -10.0));
-	controlPoints.push_back(glm::vec3(  -40.0, -30.0, -10.0));
-	controlPoints.push_back(glm::vec3(  -20.0, -30.0, -10.0));
-	controlPoints.push_back(glm::vec3(    0.0, -30.0, -10.0));
-	controlPoints.push_back(glm::vec3(   20.0, -30.0, -10.0));
-	controlPoints.push_back(glm::vec3(   40.0, -30.0, -10.0));
-	controlPoints.push_back(glm::vec3(   60.0, -30.0, -10.0));
-	controlPoints.push_back(glm::vec3(   80.0, -30.0, -10.0));
-	controlPoints.push_back(glm::vec3(  100.0, -30.0, -10.0));
-	controlPoints.push_back(glm::vec3(  120.0, -30.0, -10.0));
-	controlPoints.push_back(glm::vec3(  140.0, -30.0, -10.0));
-	controlPoints.push_back(glm::vec3(  160.0, -30.0, -10.0));
-	controlPoints.push_back(glm::vec3(  180.0, -30.0, -10.0));
-	controlPoints.push_back(glm::vec3(  200.0, -30.0, -10.0));
+	controlPoints.push_back(glm::vec3(200.0, -20.0, -80.0));
+
+	controlPoints.push_back(glm::vec3(100.0, -20.0, -80.0));
+
+	controlPoints.push_back(glm::vec3(0.0, -20.0, -80.0));
+
+	controlPoints.push_back(glm::vec3(-100.0, -20.0, -80.0));
+
+	controlPoints.push_back(glm::vec3(-200.0, -20.0, -80.0));
 
 	return controlPoints;
 }
+
+int setupGeometryBackground() {
+	GLfloat vertices[] = {
+
+
+		//x      y      z     r   g   b
+		-0.5 , -0.5 , -0.5, 1.0, 0.0, 0.0, 1.0, 1.0,
+		-0.5 , -0.5 ,  0.5, 1.0, 0.0, 0.0, 1.0, 0.0,
+		 0.5 , -0.5 , -0.5, 1.0, 0.0, 0.0, 0.0, 1.0,
+
+		 -0.5 , -0.5 ,  0.5, 1.0, 0.0, 0.0, 1.0, 0.0,
+		  0.5 , -0.5 ,  0.5, 1.0, 0.0, 0.0, 0.0, 0.0,
+		  0.5 , -0.5 , -0.5, 1.0, 0.0, 0.0, 0.0, 0.0,
+
+
+	};
+
+	unsigned int indices[] = {
+		0, 1, 3, // primeiro triangulo
+		1, 2, 3  // segundo triangulo
+	};
+
+	GLuint VBO, VAO, EBO;
+
+	glGenBuffers(1, &VBO);
+	glGenBuffers(1, &EBO);
+
+	glBindBuffer(GL_ARRAY_BUFFER, VBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+
+	glGenVertexArrays(1, &VAO);
+
+	glBindVertexArray(VAO);
+
+	//Atributo posição (x, y, z)
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), (GLvoid*)0);
+	glEnableVertexAttribArray(0);
+
+	//Atributo cor (r, g, b)
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), (GLvoid*)(3 * sizeof(GLfloat)));
+	glEnableVertexAttribArray(1);
+
+	//Atributo textura (s , t)
+	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
+	glEnableVertexAttribArray(2);
+
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glBindVertexArray(0);
+
+	return VAO;
+}
+
 
